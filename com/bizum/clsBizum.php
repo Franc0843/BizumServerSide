@@ -1,4 +1,5 @@
 <?php
+
 class Bizum
 {
     private $dbCommand;
