@@ -1,0 +1,181 @@
+{
+  "ftp://usuario_ftp@localhost": {
+    "html": {
+      "_WEBAPP1": {
+        "DB": {},
+        "_WEBAPP1.code-workspace": {
+          "type": "-",
+          "size": 60,
+          "lmtime": 0,
+          "modified": false
+        },
+        "com": {},
+        "configure.xml": {
+          "type": "-",
+          "size": 4338,
+          "lmtime": 0,
+          "modified": false
+        },
+        "main.php": {
+          "type": "-",
+          "size": 2014,
+          "lmtime": 0,
+          "modified": false
+        }
+      },
+      "ws.mybizums.com": {}
+    },
+    "var": {
+      "www": {
+        "html": {
+          "DBCommand.php": {
+            "type": "-",
+            "size": 1128,
+            "lmtime": 0,
+            "modified": false
+          },
+          "DBConnection.php": {
+            "type": "-",
+            "size": 1149,
+            "lmtime": 0,
+            "modified": false
+          },
+          "_MIAU_WEB_APP2": {},
+          "_WEBAPP1": {},
+          "create_user.php": {
+            "type": "-",
+            "size": 1365,
+            "lmtime": 0,
+            "modified": false
+          },
+          "delete_user.php": {
+            "type": "-",
+            "size": 983,
+            "lmtime": 0,
+            "modified": false
+          },
+          "list_users.php": {
+            "type": "-",
+            "size": 474,
+            "lmtime": 0,
+            "modified": false
+          },
+          "search_users.php": {
+            "type": "-",
+            "size": 1320,
+            "lmtime": 0,
+            "modified": false
+          },
+          "test.txt": {
+            "type": "-",
+            "size": 11,
+            "lmtime": 0,
+            "modified": false
+          },
+          "testt.php": {
+            "type": "-",
+            "size": 728,
+            "lmtime": 0,
+            "modified": false
+          },
+          "update_user.php": {
+            "type": "-",
+            "size": 1165,
+            "lmtime": 0,
+            "modified": false
+          },
+          "ws.mybizums.com": {
+            ".gitignore": {
+              "type": "-",
+              "size": 6,
+              "lmtime": 1773942836104.9956,
+              "modified": false
+            },
+            "com": {
+              ".DS_Store": {
+                "type": "-",
+                "size": 6148,
+                "lmtime": 1773328620367.7295,
+                "modified": false
+              },
+              "bizum": {
+                "clsBizum.php": {
+                  "type": "-",
+                  "size": 5335,
+                  "lmtime": 1773337649517.7656,
+                  "modified": false
+                }
+              },
+              "blockchain": {
+                "clsBlock.php": {
+                  "type": "-",
+                  "size": 1233,
+                  "lmtime": 1773328620864.443,
+                  "modified": false
+                },
+                "clsBlockchain.php": {
+                  "type": "-",
+                  "size": 3095,
+                  "lmtime": 1773328620805.8328,
+                  "modified": false
+                },
+                "clsTransaction.php": {
+                  "type": "-",
+                  "size": 568,
+                  "lmtime": 1773328620745.499,
+                  "modified": false
+                }
+              },
+              "security": {
+                "clsUserManager.php": {
+                  "type": "-",
+                  "size": 9356,
+                  "lmtime": 1773328620445.8574,
+                  "modified": false
+                }
+              },
+              "utils": {
+                "dbo": {
+                  "daoCommand.php": {
+                    "type": "-",
+                    "size": 2109,
+                    "lmtime": 1773328620557.8972,
+                    "modified": false
+                  },
+                  "daoConnection.php": {
+                    "type": "-",
+                    "size": 938,
+                    "lmtime": 1773328620610.649,
+                    "modified": false
+                  },
+                  "daoManager.php": {
+                    "type": "-",
+                    "size": 1017,
+                    "lmtime": 1773328620510.0476,
+                    "modified": false
+                  }
+                },
+                "mailtools": {
+                  "mail_sender.php": {
+                    "type": "-",
+                    "size": 1735,
+                    "lmtime": 1773328620682.4175,
+                    "modified": false
+                  }
+                }
+              }
+            },
+            "ws.php": {
+              "type": "-",
+              "size": 7712,
+              "lmtime": 1773941778336.253,
+              "modified": false
+            }
+          },
+          "www2": {}
+        }
+      }
+    }
+  },
+  "$version": 1
+}

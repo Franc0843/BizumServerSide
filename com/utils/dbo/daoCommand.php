@@ -10,6 +10,10 @@ class DBCommand
 
     public function execute($procedureName, $params = array())
     {
+        if (!$this->pdo) {
+            throw new Exception("Error: El objeto de conexión PDO es nulo. Verifique la conexión a la base de datos.");
+        }
+
         // Construir la cadena de marcadores de posición para los parámetros
         $placeholders = implode(',', array_fill(0, count($params), '?'));
 
@@ -39,6 +43,10 @@ class DBCommand
 
     public function execute2($sql, $params = array())
     {
+        if (!$this->pdo) {
+            throw new Exception("Error: El objeto de conexión PDO es nulo. Verifique la conexión a la base de datos.");
+        }
+
         // Construir la llamada al procedimiento almacenado con los marcadores de posición
         $stmt = $this->pdo->prepare($sql);
 

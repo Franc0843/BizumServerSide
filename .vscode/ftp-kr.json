@@ -1,0 +1,16 @@
+{
+    "host": "localhost",
+    "username": "usuario_ftp",
+    "password": "0843",
+    "remotePath": "html/ws.mybizums.com",
+    "protocol": "ftp",
+    "port": 0,
+    "fileNameEncoding": "utf8",
+    "autoUpload": true,
+    "autoDelete": false,
+    "autoDownload": false,
+    "ignore": [
+        ".git",
+        "/.vscode"
+    ]
+}
