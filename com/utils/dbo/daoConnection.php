@@ -18,7 +18,7 @@ class DBConnection {
 
     private function connectON() {
         try {
-            $this -> db = new PDO("sqlsrv:Server=$this->host;Database=$this->databaseName","$this->user","$this->password");
+            $this -> db = new PDO("sqlsrv:Server=$this->host;Database=$this->databaseName;TrustServerCertificate=true","$this->user","$this->password");
             $this -> db -> setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
            // $this -> consulta(); 
         } catch (Exception $error) {
