@@ -1,6 +1,6 @@
 USE [master]
 GO
-/****** Object:  Database [BlockchainDB]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  Database [BlockchainDB]    Script Date: 28/05/2025 13:47:19 **/
 CREATE DATABASE [BlockchainDB]
  CONTAINMENT = NONE
  ON  PRIMARY 
@@ -84,7 +84,7 @@ ALTER DATABASE [BlockchainDB] SET QUERY_STORE (OPERATION_MODE = READ_WRITE, CLEA
 GO
 USE [BlockchainDB]
 GO
-/****** Object:  UserDefinedFunction [dbo].[CalculateHash]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  UserDefinedFunction [dbo].[CalculateHash]    Script Date: 28/05/2025 13:47:19 **/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -109,7 +109,7 @@ BEGIN
     RETURN @Hash;
 END;
 GO
-/****** Object:  Table [dbo].[Blocks]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  Table [dbo].[Blocks]    Script Date: 28/05/2025 13:47:19 **/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -125,7 +125,7 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[BlockTransactions]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  Table [dbo].[BlockTransactions]    Script Date: 28/05/2025 13:47:19 **/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -145,7 +145,7 @@ GO
 ALTER TABLE [dbo].[BlockTransactions]  WITH CHECK ADD FOREIGN KEY([BlockID])
 REFERENCES [dbo].[Blocks] ([BlockID])
 GO
-/****** Object:  StoredProcedure [dbo].[AddBlock]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  StoredProcedure [dbo].[AddBlock]    Script Date: 28/05/2025 13:47:19 **/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -171,7 +171,7 @@ BEGIN
     WHERE BlockID = @BlockID;
 END;
 GO
-/****** Object:  StoredProcedure [dbo].[AddTransaction]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  StoredProcedure [dbo].[AddTransaction]    Script Date: 28/05/2025 13:47:19 **/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -196,7 +196,7 @@ BEGIN
     VALUES (@BlockID, @TransactionID);
 END;
 GO
-/****** Object:  StoredProcedure [dbo].[BlockExists]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  StoredProcedure [dbo].[BlockExists]    Script Date: 28/05/2025 13:47:19 **/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -213,7 +213,7 @@ BEGIN
 	SELECT @Exists;
 END;
 GO
-/****** Object:  StoredProcedure [dbo].[GetBlockChainXML]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  StoredProcedure [dbo].[GetBlockChainXML]    Script Date: 28/05/2025 13:47:19 **/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -233,8 +233,8 @@ BEGIN
             B.Hash,
             (SELECT 
                 T.TransactionID, 
-                T.Sender, 
-                T.Receiver, 
+                T.SenderID, 
+                T.ReceiverID, 
                 T.Amount
              FROM PP_DDBB.dbo.Transactions T
              INNER JOIN BlockTransactions BT ON T.TransactionID = BT.TransactionID
@@ -244,7 +244,7 @@ BEGIN
          FOR XML PATH('Block'), ROOT('Blockchain')) AS BlockchainXML;
 END;
 GO
-/****** Object:  StoredProcedure [dbo].[sp_blockchain_add_block]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  StoredProcedure [dbo].[sp_blockchain_add_block]    Script Date: 28/05/2025 13:47:19 **/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -329,7 +329,7 @@ BEGIN
 	END CATCH
 	END;
 GO
-/****** Object:  StoredProcedure [dbo].[sp_xml_error_messageINCOMPLETO]    Script Date: 28/05/2025 13:47:19 ******/
+/** Object:  StoredProcedure [dbo].[sp_xml_error_messageINCOMPLETO]    Script Date: 28/05/2025 13:47:19 **/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
