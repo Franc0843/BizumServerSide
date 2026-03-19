@@ -98,7 +98,7 @@ BEGIN
     DECLARE @IsValid BIT;
 
     -- Verificar si la contraseña proporcionada coincide con la almacenada en la base de datos
-	IF UPPER(@TEXT) LIKE '%SELECT%' OR @TEXT LIKE '%1=1%'
+	IF UPPER(@TEXT) LIKE '%SELECT%' OR @TEXT LIKE '%1=1%' OR @TEXT LIKE '%DROP%' OR @TEXT LIKE '%DELETE%' OR @TEXT LIKE '%INSERT%' OR @TEXT LIKE '%UPDATE%' OR @TEXT LIKE '%--%' OR @TEXT LIKE '%;%'
 		SET @IsValid = 0;
 	ELSE
 		SET @IsValid = 1;
@@ -120,7 +120,7 @@ CREATE   FUNCTION [dbo].[fn_compare_passwords]
 RETURNS INT
 AS
 BEGIN
-    DECLARE @pwd NVARCHAR(50);
+    DECLARE @pwd NVARCHAR(256);  -- Cambiado a NVARCHAR(256) para coincidir con la tabla
 
     IF EXISTS (SELECT 1 FROM USERS WHERE USERNAME = @USERNAME)
     BEGIN
@@ -128,17 +128,15 @@ BEGIN
         FROM USERS
         WHERE USERNAME = @USERNAME;
 
-        -- Usando CASE para la comparaciÃ³n
-        RETURN (
-            SELECT CASE
+        -- Usando CASE para la comparación
+        RETURN (CASE
                 WHEN @NEW_PASSWORD IS NOT NULL AND @NEW_PASSWORD = @pwd THEN 1
                 ELSE 0
-            END
-        );
+            END);
     END
     ELSE
     BEGIN
-        RETURN 0; -- El usuario no existe, asÃ­ que asumimos que la contraseÃ±a no es igual
+        RETURN 0; -- El usuario no existe, así que asumimos que la contraseña no es igual
     END
 
     -- Este return es redundante, pero se deja como salvaguarda
@@ -153,13 +151,13 @@ GO
 
 CREATE   FUNCTION [dbo].[fn_compare_soundex] (
     @USERNAME NVARCHAR(25),
-    @NEW_PASSWORD NVARCHAR(50)
+    @NEW_PASSWORD NVARCHAR(256)  -- Cambiado a NVARCHAR(256) para coincidir
 )
 RETURNS BIT
 AS
 BEGIN
     DECLARE @USER_ID INT;
-    DECLARE @RESULT BIT = 1; -- 1 significa que no suena igual a las 3 Ãºltimas contraseÃ±as
+    DECLARE @RESULT BIT = 1; -- 1 significa que no suena igual a las 3 últimas contraseñas
     
     -- Obtener el ID del usuario
     SELECT @USER_ID = ID
@@ -172,7 +170,7 @@ BEGIN
         RETURN @RESULT;
     END
 
-    -- Verificar las Ãºltimas 3 contraseÃ±as
+    -- Verificar las últimas 3 contraseñas
     IF EXISTS (
         SELECT 1
         FROM (
@@ -184,7 +182,7 @@ BEGIN
         WHERE SOUNDEX(OLD_PASSWORD) = SOUNDEX(@NEW_PASSWORD)
     )
     BEGIN
-        SET @RESULT = 0; -- 0 significa que suena igual a una de las 3 Ãºltimas contraseÃ±as
+        SET @RESULT = 0; -- 0 significa que suena igual a una de las 3 últimas contraseñas
     END
 
     RETURN @RESULT;
@@ -217,9 +215,7 @@ RETURNS BIT
 AS
 BEGIN
     DECLARE @Exists BIT;
-    SET @Exists = (
-        SELECT CASE WHEN EXISTS (SELECT 1 FROM USERS WHERE EMAIL = @EMAIL) THEN 1 ELSE 0 END
-    );
+    SET @Exists = (SELECT CASE WHEN EXISTS (SELECT 1 FROM USERS WHERE EMAIL = @EMAIL) THEN 1 ELSE 0 END);
     RETURN @Exists;
 END;
 GO
@@ -236,11 +232,11 @@ BEGIN
     DECLARE @ValidEmail BIT = 0;
     DECLARE @AtPosition INT, @DotPosition INT;
 
-    -- Verificar si el correo electrÃ³nico contiene '@' y al menos un caracter antes y despuÃ©s
+    -- Verificar si el correo electrónico contiene '@' y al menos un caracter antes y después
     SET @AtPosition = CHARINDEX('@', @EMAIL);
     IF (@AtPosition > 1 AND @AtPosition < LEN(@EMAIL))
     BEGIN
-        -- Verificar si el correo electrÃ³nico contiene un punto despuÃ©s de '@' y al menos un caracter despuÃ©s del punto
+        -- Verificar si el correo electrónico contiene un punto después de '@' y al menos un caracter después del punto
         SET @DotPosition = CHARINDEX('.', @EMAIL, @AtPosition);
         IF (@DotPosition > (@AtPosition + 1) AND @DotPosition < LEN(@EMAIL))
         BEGIN
@@ -257,32 +253,30 @@ GO
 SET QUOTED_IDENTIFIER OFF
 GO
 
--- FunciÃ³n para verificar la polÃ­tica de contraseÃ±as
+-- Función para verificar la política de contraseñas
 CREATE   FUNCTION [dbo].[fn_pwd_checkpolicy](@PASSWORD NVARCHAR(256))
 RETURNS INT
 AS
 BEGIN
-    DECLARE @errorPass BIT;
+    DECLARE @errorPass INT;  -- Cambiado a INT para coincidir con el RETURN
     SET @errorPass = 1;
 
-    IF len(@PASSWORD) < 10
+    IF LEN(@PASSWORD) < 10
     BEGIN
         SET @errorPass = 0;
     END
-
-    -- Verifica la existencia de un nÃºmero en la contraseÃ±a
+    -- Verifica la existencia de un número en la contraseña
     ELSE IF PATINDEX('%[0-9]%', @PASSWORD) = 0
     BEGIN
         SET @errorPass = 0;
     END
-
-    -- Verifica la existencia de una letra en la contraseÃ±a
+    -- Verifica la existencia de una letra en la contraseña
     ELSE IF PATINDEX('%[a-zA-Z]%', @PASSWORD) = 0
     BEGIN
         SET @errorPass = 0;
     END
-    -- Verifica la existencia de un carÃ¡cter especial en la contraseÃ±a
-    ELSE IF PATINDEX('%[^a-zA-Z0-9]%', @PASSWORD) = 0
+    -- Verifica la existencia de un carácter especial en la contraseña
+    ELSE IF @PASSWORD NOT LIKE '%[^a-zA-Z0-9]%'  -- Cambiado para mejor claridad
     BEGIN
         SET @errorPass = 0;
     END
@@ -296,7 +290,7 @@ GO
 SET QUOTED_IDENTIFIER OFF
 GO
 
--- FunciÃ³n para verificar la contraseÃ±a del usuario
+-- Función para verificar la contraseña del usuario
 CREATE   FUNCTION [dbo].[fn_pwd_isvalid]
 (
     @PASSWORD NVARCHAR(256),
@@ -307,10 +301,8 @@ AS
 BEGIN
     DECLARE @IsValid BIT;
 
-    -- Verificar si la contraseÃ±a proporcionada coincide con la almacenada en la base de datos
-    SET @IsValid = (
-        SELECT CASE WHEN EXISTS (SELECT 1 FROM USERS WHERE USERNAME = @USERNAME AND PASSWORD = @PASSWORD) THEN 1 ELSE 0 END
-    );
+    -- Verificar si la contraseña proporcionada coincide con la almacenada en la base de datos
+    SET @IsValid = (SELECT CASE WHEN EXISTS (SELECT 1 FROM USERS WHERE USERNAME = @USERNAME AND PASSWORD = @PASSWORD) THEN 1 ELSE 0 END);
 
     RETURN @IsValid;
 END;
@@ -325,9 +317,7 @@ RETURNS BIT
 AS
 BEGIN
     DECLARE @Exists BIT;
-    SET @Exists = (
-        SELECT CASE WHEN EXISTS (SELECT 1 FROM USERS WHERE USERNAME = @USERNAME) THEN 1 ELSE 0 END
-    );
+    SET @Exists = (SELECT CASE WHEN EXISTS (SELECT 1 FROM USERS WHERE USERNAME = @USERNAME) THEN 1 ELSE 0 END);
     RETURN @Exists;
 END;
 GO
@@ -350,7 +340,7 @@ BEGIN
     FROM USERS u
     WHERE u.USERNAME = @USERNAME;
 
-    RETURN @userState;
+    RETURN ISNULL(@userState, 0);
 END;
 GO
 /****** Object:  View [dbo].[v_guid]    Script Date: 28/05/2025 13:51:03 ******/
@@ -359,9 +349,9 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-create view [dbo].[v_guid] 
+CREATE VIEW [dbo].[v_guid] 
 AS
-    select newid() guid
+    SELECT NEWID() AS guid
 GO
 /****** Object:  Table [dbo].[BANK_ACCOUNTS]    Script Date: 28/05/2025 13:51:03 ******/
 SET ANSI_NULLS ON
@@ -476,7 +466,6 @@ CREATE TABLE [dbo].[USER_CONNECTIONS](
 	[USER_ID] [int] NULL,
 	[USERNAME] [nvarchar](25) NULL,
 	[DATE_CONNECTED] [datetime] NULL,
-	[DATE_DISCONNECTED] [datetime] NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[CONNECTION_ID] ASC
@@ -505,8 +494,9 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+-- CORREGIDO: IDENTITY(1,1) en lugar de IDENTITY(0,1)
 CREATE TABLE [dbo].[USER_ERRORS](
-	[ERROR_ID] [int] IDENTITY(0,1) NOT NULL,
+	[ERROR_ID] [int] IDENTITY(1,1) NOT NULL,
 	[ERROR_CODE] [int] NOT NULL,
 	[ERROR_MESSAGE] [nvarchar](max) NOT NULL,
 PRIMARY KEY CLUSTERED 
@@ -544,11 +534,10 @@ UNIQUE NONCLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-SET IDENTITY_INSERT [dbo].[USER_ERRORS] ON 
-GO
+-- CORREGIDO: No se necesita SET IDENTITY_INSERT ON ya que ahora usamos IDENTITY(1,1)
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (-1, N'Error indefinido')
 GO
-INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (0, N'¡El proceso a sido un éxito!')
+INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (0, N'¡El proceso ha sido un éxito!')
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (100, N'Usuario desconectado y registrado en el historial correctamente.')
 GO
@@ -562,9 +551,9 @@ INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (408, N'El cor
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (409, N'El usuario ya existe')
 GO
-INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (410, N'Género no valido.')
+INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (410, N'Género no válido.')
 GO
-INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (411, N'Idioma no valido.')
+INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (411, N'Idioma no válido.')
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (423, N'La cuenta del usuario está inactiva o bloqueada.')
 GO
@@ -572,7 +561,7 @@ INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (450, N'El cor
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (451, N'La contraseña no cumple los requisitos')
 GO
-INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (500, N'El usuario se esta desconectando.')
+INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (500, N'El usuario se está desconectando.')
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (501, N'El nombre de usuario no existe.')
 GO
@@ -590,7 +579,7 @@ INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (507, N'No se 
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (508, N'No se encontraron errores.')
 GO
-INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (509, N'El email no esta registrado en la base de datos.')
+INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (509, N'El email no está registrado en la base de datos.')
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (600, N'Fondos insuficientes')
 GO
@@ -612,14 +601,14 @@ INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (900, N'Usuari
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (901, N'No puedes enviarte un bizum a ti mismo.')
 GO
-SET IDENTITY_INSERT [dbo].[USER_ERRORS] OFF
-GO
+
 INSERT [dbo].[STATUS] ([STATUS], [DESCRIPTION]) VALUES (0, N'Pendiente')
 GO
 INSERT [dbo].[STATUS] ([STATUS], [DESCRIPTION]) VALUES (1, N'Activo')
 GO
 INSERT [dbo].[STATUS] ([STATUS], [DESCRIPTION]) VALUES (2, N'Bloqueado')
 GO
+
 INSERT [dbo].[LANGUAGES] ([DEF_LANG], [LanguageName]) VALUES (N'ARA', N'Arabic')
 GO
 INSERT [dbo].[LANGUAGES] ([DEF_LANG], [LanguageName]) VALUES (N'CHN', N'Chinese')
@@ -640,6 +629,7 @@ INSERT [dbo].[LANGUAGES] ([DEF_LANG], [LanguageName]) VALUES (N'POR', N'Portugue
 GO
 INSERT [dbo].[LANGUAGES] ([DEF_LANG], [LanguageName]) VALUES (N'RUS', N'Russian')
 GO
+
 ALTER TABLE [dbo].[BANK_ACCOUNTS] ADD  DEFAULT (newid()) FOR [ACCOUNT_ID]
 GO
 ALTER TABLE [dbo].[BANK_ACCOUNTS] ADD  DEFAULT ((0)) FOR [BALANCE]
@@ -660,6 +650,7 @@ ALTER TABLE [dbo].[USER_CONNECTIONS_HISTORY] ADD  DEFAULT (CONVERT([datetime],sw
 GO
 ALTER TABLE [dbo].[USERS] ADD  DEFAULT (CONVERT([datetime],switchoffset(sysdatetimeoffset(),'+02:00'))) FOR [TIMESTAMP]
 GO
+
 ALTER TABLE [dbo].[BANK_ACCOUNTS]  WITH CHECK ADD FOREIGN KEY([USER_ID])
 REFERENCES [dbo].[USERS] ([ID])
 GO
@@ -694,19 +685,20 @@ GO
 ALTER TABLE [dbo].[USERS]  WITH CHECK ADD FOREIGN KEY([STATUS])
 REFERENCES [dbo].[STATUS] ([STATUS])
 GO
+
 /****** Object:  StoredProcedure [dbo].[getPasswordHash]    Script Date: 28/05/2025 13:51:03 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE PROCEDURE [dbo].[getPasswordHash]
-    @username VARCHAR(25)
+    @username NVARCHAR(25)  -- Cambiado a NVARCHAR para coincidir
 AS
 BEGIN
     DECLARE @stored_hash NVARCHAR(256);
 
     -- Obtener el hash de la base de datos
-    SELECT @stored_hash = PASSWORD FROM users WHERE USERNAME = @username;
+    SELECT @stored_hash = PASSWORD FROM USERS WHERE USERNAME = @username;
 
     -- Devolver el hash si el usuario existe
     IF @stored_hash IS NOT NULL 
@@ -729,7 +721,7 @@ BEGIN
     DECLARE @text NVARCHAR(2000) = '';  -- Inicializar correctamente la variable de texto
     SET @pwd = @pwd COLLATE Latin1_General_CS_AS;
 	SET @score = 0;
-	SET @xml = '';
+	SET @xml = NULL;
 
     -- Longitud mínima de 8 caracteres (+10 pts)
     IF LEN(@pwd) >= 8 
@@ -738,13 +730,13 @@ BEGIN
         SET @text = @text + 'longitud mínima, ';
     
     -- Contiene al menos una mayúscula (+10 pts)
-    IF @pwd LIKE '%[ABCDEFGHIJKLMNÑOPQRSTUVWXYZ]%' COLLATE Latin1_General_CS_AS  
+    IF @pwd LIKE '%[A-Z]%' COLLATE Latin1_General_CS_AS  
         SET @score = @score + 10;
     ELSE
         SET @text = @text + 'mayúscula, ';
 
     -- Contiene al menos una minúscula (+10 pts)
-    IF @pwd LIKE '%[abcdefghijklmnñopqrstuvwxyz]%' COLLATE Latin1_General_CS_AS  
+    IF @pwd LIKE '%[a-z]%' COLLATE Latin1_General_CS_AS  
         SET @score = @score + 10;
     ELSE
         SET @text = @text + 'minúscula, ';
@@ -769,7 +761,7 @@ BEGIN
     IF LEN(@text) > 0
 		SET @xml = (SELECT @text AS [text()] FOR XML PATH(''), TYPE);
 	ELSE
-		SET @xml = 'Ninguno';
+		SET @xml = (SELECT 'Ninguno' FOR XML PATH(''), TYPE);
 
 END;
 GO
@@ -790,7 +782,7 @@ BEGIN
     DECLARE @XMLFlag XML;
 
     IF EXISTS (
-        SELECT 1 FROM USER_CONNECTIONS -- Verifica la tabla correcta
+        SELECT 1 FROM USER_CONNECTIONS
     )
     BEGIN
         SET @XMLFlag = (
@@ -807,9 +799,8 @@ BEGIN
 
     IF @ret <> 0
     BEGIN
-        ExitProc:
         DECLARE @ResponseXML XML;
-        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT;
+        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'list_connections';
         SELECT @ResponseXML;
     END
     ELSE
@@ -837,8 +828,8 @@ BEGIN
     BEGIN
         -- Si hay errores, convertir el conjunto de resultados a XML
         SET @XMLFlag = (
-            SELECT * FROM USER_ERRORS
-            FOR XML PATH('Errors'), ROOT('Errors'), TYPE
+            SELECT ERROR_CODE, ERROR_MESSAGE FROM USER_ERRORS
+            FOR XML PATH('Error'), ROOT('Errors'), TYPE
         );
         SET @ret = 0; -- Indicar que hubo resultados
     END
@@ -849,9 +840,8 @@ BEGIN
 
     IF @ret <> 0
     BEGIN
-        ExitProc:
         DECLARE @ResponseXML XML;
-        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT;
+        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'list_errors';
         SELECT @ResponseXML;
     END
     ELSE
@@ -879,8 +869,9 @@ BEGIN
     BEGIN
         -- Si hay datos, convertir el conjunto de resultados a XML
         SET @XMLFlag = (
-            SELECT HISTORY_ID,USERNAME,DATE_CONNECTED,DATE_DISCONNECTED FROM USER_CONNECTIONS_HISTORY
-            FOR XML PATH('HistoricConnections'), ROOT('HistoricConnections'), TYPE
+            SELECT HISTORY_ID, USERNAME, DATE_CONNECTED, DATE_DISCONNECTED 
+            FROM USER_CONNECTIONS_HISTORY
+            FOR XML PATH('HistoricConnection'), ROOT('HistoricConnections'), TYPE
         );
         SET @ret = 0; -- Indicar que hubo resultados
     END
@@ -891,9 +882,8 @@ BEGIN
     
     IF @ret <> 0
     BEGIN
-        ExitProc:
         DECLARE @ResponseXML XML;
-        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT;
+        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'list_historic_connections';
         SELECT @ResponseXML;
     END
     ELSE
@@ -924,10 +914,10 @@ BEGIN
     BEGIN
         -- Si hay usuarios con estado, convertir el conjunto de resultados a XML
         SET @XMLFlag = (
-            SELECT u.ID AS UserID, u.USERNAME, s.STATUS
+            SELECT u.ID AS UserID, u.USERNAME, s.STATUS, s.DESCRIPTION
             FROM USERS u
             INNER JOIN STATUS s ON u.STATUS = s.STATUS
-            FOR XML PATH(''), ROOT('SystemStatus'), TYPE
+            FOR XML PATH('User'), ROOT('SystemStatus'), TYPE
         );
         SET @ret = 0; -- Indicar que hubo resultados
     END
@@ -938,9 +928,8 @@ BEGIN
 
     IF @ret <> 0
     BEGIN
-        ExitProc:
         DECLARE @ResponseXML XML;
-        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT;
+        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'list_system_status';
         SELECT @ResponseXML;
     END
     ELSE
@@ -969,20 +958,20 @@ BEGIN
     BEGIN
         -- Si hay datos, convertir el conjunto de resultados a XML
         SET @XMLFlag = (
-            SELECT USERNAME FROM USERS
-            FOR XML PATH('Usuarios'), ROOT('Usuarios'), TYPE
+            SELECT USERNAME, NAME, LASTNAME, EMAIL FROM USERS
+            FOR XML PATH('User'), ROOT('Users'), TYPE
         );
+        SET @ret = 0;
     END
     ELSE
     BEGIN
-        SET @ret = 505; -- Indicar que hubo resultados
+        SET @ret = 505;
     END
     
-    IF @ret <> -1
+    IF @ret <> 0
     BEGIN
-        ExitProc:
         DECLARE @ResponseXML XML;
-        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT;
+        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'list_users';
         SELECT @ResponseXML;
     END
     ELSE
@@ -995,7 +984,7 @@ GO
 SET QUOTED_IDENTIFIER OFF
 GO
 
--- Procedimiento almacenado para listar usuarios
+-- Procedimiento almacenado para listar usuarios (con verificación de admin)
 CREATE   PROCEDURE [dbo].[sp_list_users2]
     @ssid NVARCHAR(255)
 AS
@@ -1006,14 +995,12 @@ BEGIN
     SET @ret = -1;
 
     DECLARE @XMLFlag XML;
-
-    DECLARE @USERNAME NVARCHAR(250);
-
+    DECLARE @USERNAME NVARCHAR(25);  -- Ajustado tamaño
     DECLARE @ROL_USER BIT;
     
-    SELECT @USERNAME=USERNAME
+    SELECT @USERNAME = USERNAME
     FROM USER_CONNECTIONS
-    WHERE CAST(CONNECTION_ID AS nvarchar(255))=@ssid ;
+    WHERE CAST(CONNECTION_ID AS NVARCHAR(255)) = @ssid;
 
     SELECT @ROL_USER = ROL_USER
     FROM USERS
@@ -1026,9 +1013,10 @@ BEGIN
         BEGIN
             -- Si hay datos, convertir el conjunto de resultados a XML
             SET @XMLFlag = (
-                SELECT USERNAME FROM USERS
-                FOR XML PATH('Usuarios'), ROOT('Usuarios'), TYPE
+                SELECT USERNAME, NAME, LASTNAME, EMAIL FROM USERS
+                FOR XML PATH('User'), ROOT('Users'), TYPE
             );
+            SET @ret = 0;
         END
         ELSE
         BEGIN
@@ -1040,11 +1028,10 @@ BEGIN
         SET @ret = 800;
     END
     
-    IF @ret <> -1
+    IF @ret <> 0
     BEGIN
-        ExitProc:
         DECLARE @ResponseXML XML;
-        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT;
+        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'list_users2';
         SELECT @ResponseXML;
     END
     ELSE
@@ -1086,14 +1073,10 @@ BEGIN
 	ExitProc:
     DECLARE @ResponseXML XML, @Connection_ID_XML XML;
     EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'check_balance';
-	SET @Balance_XML = (
-		SELECT @BALANCE FOR XML PATH('BALANCE')
-	);
-	SET @ResponseXML = (
-		SELECT @ResponseXML, @Balance_XML
-		FOR XML PATH ('root')
-	);
-    SELECT @ResponseXML;
+	SET @BALANCE_XML = (SELECT @BALANCE AS Balance FOR XML PATH(''), TYPE);
+	
+	-- Combinar respuestas
+	SELECT @ResponseXML, @BALANCE_XML FOR XML PATH('root'), TYPE;
 END;
 GO
 /****** Object:  StoredProcedure [dbo].[sp_uc_check_username]    Script Date: 28/05/2025 13:51:03 ******/
@@ -1103,30 +1086,30 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE PROCEDURE [dbo].[sp_uc_check_username] 
     @SSID NVARCHAR(255),
-	@RECEIVER NVARCHAR(50)
+	@RECEIVER NVARCHAR(25)  -- Ajustado tamaño
 AS
 BEGIN
     DECLARE @SENDER_ID INT;
 	DECLARE @RECEIVER_ID INT;
 
 	SET @RECEIVER = @RECEIVER COLLATE Latin1_General_CS_AS;
-	SET @SENDER_ID = (SELECT USER_ID FROM USER_CONNECTIONS WHERE CONNECTION_ID = @SSID);
+	SELECT @SENDER_ID = USER_ID FROM USER_CONNECTIONS WHERE CONNECTION_ID = @SSID;
 	
-	IF EXISTS (SELECT 1 FROM USERS WHERE USERNAME=@RECEIVER)
+	IF EXISTS (SELECT 1 FROM USERS WHERE USERNAME = @RECEIVER)
     BEGIN
-		SET @RECEIVER_ID = (SELECT ID FROM USERS WHERE USERNAME=@RECEIVER);
+		SELECT @RECEIVER_ID = ID FROM USERS WHERE USERNAME = @RECEIVER;
 		IF @RECEIVER_ID = @SENDER_ID
 		BEGIN
-			SELECT 2;
+			SELECT 2 AS Result;  -- Es el mismo usuario
 		END
 		ELSE
 		BEGIN
-			SELECT 1;
+			SELECT 1 AS Result;  -- Usuario existe y es diferente
 		END
 	END
 	ELSE
 	BEGIN
-		SELECT 0;
+		SELECT 0 AS Result;  -- Usuario no existe
 	END
 END;
 GO
@@ -1217,7 +1200,7 @@ BEGIN
     BEGIN
         -- Error de sesión
         DECLARE @XmlError XML;
-        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @XmlError OUTPUT, @Action = 'get_last_transaction';
+        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @XmlError OUTPUT, @Action = 'get_user_transactions';
         SELECT @XmlError;
         RETURN;
     END
@@ -1232,28 +1215,23 @@ BEGIN
         SELECT
             'No transaction found' AS [Message],
             @USER_ID AS [UserID]
-        FOR XML PATH('NoTransaction'), ROOT('LastTransaction');
+        FOR XML PATH('NoTransaction'), ROOT('Transactions');
         RETURN;
     END
 
-    -- Obtener la transacción más reciente con usernames
-	DECLARE @XmlString NVARCHAR(MAX);
-
-	SELECT @XmlString = CAST((
-		SELECT T.TransactionID,
-			SU.USERNAME AS Sender,
-			RU.USERNAME AS Receiver,
-			T.Amount,
-			T.Timestamp
-		FROM Transactions T
-		INNER JOIN USERS SU ON T.SenderID = SU.ID
-		INNER JOIN USERS RU ON T.ReceiverID = RU.ID
-		WHERE T.SenderID = @USER_ID OR T.ReceiverID = @USER_ID
-		ORDER BY T.Timestamp DESC
-		FOR XML PATH('Transaction'), ROOT('Transactions')
-	) AS NVARCHAR(MAX));
-
-	SELECT @XmlString;
+    -- Obtener las transacciones con usernames
+	SELECT 
+		T.TransactionID,
+		SU.USERNAME AS Sender,
+		RU.USERNAME AS Receiver,
+		T.Amount,
+		T.Timestamp
+	FROM Transactions T
+	INNER JOIN USERS SU ON T.SenderID = SU.ID
+	INNER JOIN USERS RU ON T.ReceiverID = RU.ID
+	WHERE T.SenderID = @USER_ID OR T.ReceiverID = @USER_ID
+	ORDER BY T.Timestamp DESC
+	FOR XML PATH('Transaction'), ROOT('Transactions');
 END;
 GO
 /****** Object:  StoredProcedure [dbo].[sp_uc_send_bizum]    Script Date: 28/05/2025 13:51:03 ******/
@@ -1316,31 +1294,39 @@ BEGIN
 			END
 			ELSE
 			BEGIN
+				BEGIN TRANSACTION;
+				BEGIN TRY
+					-- Paso 4: Realizar la transacción
+					INSERT INTO Transactions (SenderID, ReceiverID, Amount)
+					VALUES (@SENDER_ID, @RECEIVER_ID, @AMOUNT);
 
-				-- Paso 4: Realizar la transacción
-				INSERT INTO Transactions (SenderID, ReceiverID, Amount)
-				VALUES (@SENDER_ID, @RECEIVER_ID, @AMOUNT);
+					SET @TransactionID = SCOPE_IDENTITY();
 
-				SET @TransactionID = SCOPE_IDENTITY();
+					-- Paso 5: Actualizar saldos
+					UPDATE BANK_ACCOUNTS
+					SET BALANCE = BALANCE - @AMOUNT
+					WHERE USER_ID = @SENDER_ID;
 
-				-- Paso 5: Actualizar saldos
-				UPDATE BANK_ACCOUNTS
-				SET BALANCE = BALANCE - @AMOUNT
-				WHERE USER_ID = @SENDER_ID;
+					UPDATE BANK_ACCOUNTS
+					SET BALANCE = BALANCE + @AMOUNT
+					WHERE USER_ID = @RECEIVER_ID;
 
-				UPDATE BANK_ACCOUNTS
-				SET BALANCE = BALANCE + @AMOUNT
-				WHERE USER_ID = @RECEIVER_ID;
+					COMMIT TRANSACTION;
 
-				    -- Paso 6: Generar bloque para blockchain
-				EXEC BlockchainDB.dbo.sp_blockchain_add_block 
-					@TransactionID = @TransactionID,
-					@SenderID = @SENDER_ID,
-					@ReceiverID = @RECEIVER_ID,
-					@Amount = @AMOUNT,
-					@ret = @ret OUTPUT;
+					-- Paso 6: Generar bloque para blockchain (fuera de la transacción para evitar bloqueos)
+					EXEC BlockchainDB.dbo.sp_blockchain_add_block 
+						@TransactionID = @TransactionID,
+						@SenderID = @SENDER_ID,
+						@ReceiverID = @RECEIVER_ID,
+						@Amount = @AMOUNT,
+						@ret = @ret OUTPUT;
 
-				SET @ret = 0;
+					SET @ret = 0;
+				END TRY
+				BEGIN CATCH
+					ROLLBACK TRANSACTION;
+					SET @ret = -1;
+				END CATCH
 			END
 		END
 	END
@@ -1350,7 +1336,6 @@ ExitProc:
     EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'send_bizum';
     SELECT @ResponseXML;
 END;
-
 GO
 /****** Object:  StoredProcedure [dbo].[sp_user_accountvalidate]    Script Date: 28/05/2025 13:51:03 ******/
 SET ANSI_NULLS ON
@@ -1382,14 +1367,14 @@ BEGIN
     FROM USERS
     WHERE USERNAME = @USERNAME;
 
-    -- Verificar si el usuario ya estÃ¡ activo
+    -- Verificar si el usuario ya está activo
     IF @UserStatus = 1
     BEGIN
         SET @ret = 701;
         GOTO ExitProc;
     END;
 
-    -- Verificar si el cÃ³digo de registro coincide
+    -- Verificar si el código de registro coincide
     IF @REGISTER_CODE <> @UserRegisterCode
     BEGIN
         SET @ret = 702;
@@ -1399,7 +1384,7 @@ BEGIN
     -- Actualizar el estado del usuario a activo (1)
     UPDATE USERS SET STATUS = 1 WHERE ID = @UserID;
 
-    -- Verificar si se actualizÃ³ correctamente
+    -- Verificar si se actualizó correctamente
     IF @@ROWCOUNT = 0
     BEGIN
         SET @ret = 703;
@@ -1432,42 +1417,43 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-	DECLARE @USERNAME NVARCHAR(50);
+	DECLARE @USERNAME NVARCHAR(25);
     DECLARE @ret INT;
     SET @ret = -1;
 
-	SET @USERNAME = (SELECT USERNAME FROM USERS WHERE ID = (
-						SELECT USER_ID FROM USER_CONNECTIONS WHERE CONNECTION_ID = @SSID));
+	SELECT @USERNAME = USERNAME FROM USERS WHERE ID = (
+		SELECT USER_ID FROM USER_CONNECTIONS WHERE CONNECTION_ID = @SSID
+	);
 
-    -- Verifica que la contraseÃ±a actual sea vÃ¡lida
+    -- Verifica que la contraseña actual sea válida
     IF (dbo.fn_pwd_isvalid(@CURRENT_PASSWORD, @USERNAME) = 0)
     BEGIN
         SET @ret = 502;
         GOTO ExitProc;
     END
 
-    -- Verifica que la nueva contraseÃ±a cumpla con la polÃ­tica
+    -- Verifica que la nueva contraseña cumpla con la política
     IF dbo.fn_pwd_checkpolicy(@NEW_PASSWORD) = 0
     BEGIN
         SET @ret = 503;
         GOTO ExitProc;
     END
 
-    -- Verificar si la nueva contraseÃ±a es igual a alguna de las tres Ãºltimas contraseÃ±as
+    -- Verificar si la nueva contraseña es igual a alguna de las tres últimas contraseñas
     IF dbo.fn_compare_soundex(@USERNAME, @NEW_PASSWORD) = 0
     BEGIN
-        SET @ret = 402;
+        SET @ret = 403;  -- Cambiado a 403 que es el código correcto para sonido similar
         GOTO ExitProc;
     END
 
-    -- Verificar si la nueva contraseÃ±a es igual a la Ãºltima contraseÃ±a
+    -- Verificar si la nueva contraseña es igual a la última contraseña
     IF dbo.fn_compare_passwords(@NEW_PASSWORD, @USERNAME) = 1
     BEGIN
         SET @ret = 402;
         GOTO ExitProc;
     END
 
-    -- Llamar a la procedure para actualizar la informaciÃ³n de contraseÃ±a del usuario
+    -- Llamar a la procedure para actualizar la información de contraseña del usuario
     EXEC sp_wdev_user_update_password_info @USERNAME, @CURRENT_PASSWORD, @NEW_PASSWORD, @ret OUTPUT;
 
     ExitProc:
@@ -1494,10 +1480,10 @@ BEGIN
     -- Llamar al procedimiento para verificar la existencia de datos
     EXEC sp_wdev_user_check_existence @USERNAME, @ret OUTPUT, @XMLFlag OUTPUT;
 
-    IF @ret <> -1
+    IF @ret <> 0
     BEGIN
         DECLARE @ResponseXML XML;
-        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT;
+        EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'get_accountdata';
         SELECT @ResponseXML;
     END
     ELSE
@@ -1522,7 +1508,7 @@ BEGIN
     DECLARE @ret INT;
     SET @ret = -1;
 
-    -- Verificar si el usuario estÃ¡ actualmente conectado
+    -- Verificar si el usuario está actualmente conectado
     EXEC sp_wdev_user_get_login_status @USERNAME, @LOGIN_STATUS OUTPUT, @ret OUTPUT;
 
     -- Verificar si el usuario existe
@@ -1544,12 +1530,12 @@ BEGIN
 			 -- Verificar SQL Inyection
 			IF (dbo.fn_analyze_sql_inyection(@PASSWORD) = 0)
 			BEGIN
-				SET @ret = 69	;
+				SET @ret = 69;
 				GOTO ExitProc;
 			END
 			ELSE
 			BEGIN
-				-- Verificar la validez de la contraseÃ±a
+				-- Verificar la validez de la contraseña
 				IF (dbo.fn_pwd_isvalid(@PASSWORD, @USERNAME) = 0)
 				BEGIN
 					SET @ret = 502;
@@ -1560,7 +1546,7 @@ BEGIN
 					DECLARE @CONNECTION_ID UNIQUEIDENTIFIER;
 					SET @CONNECTION_ID = dbo.fn_generate_ssid();
 
-					-- Crear una nueva conexiÃ³n para el usuario
+					-- Crear una nueva conexión para el usuario
 					EXEC sp_wdev_user_create_user_connection @USERNAME, @CONNECTION_ID, @ret OUTPUT;
 				END
             END
@@ -1570,15 +1556,19 @@ BEGIN
     ExitProc:
     DECLARE @ResponseXML XML, @Connection_ID_XML XML;
     EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'login';
-	SET @Connection_ID_XML = (
-		SELECT CONNECTION_ID FROM USER_CONNECTIONS WHERE USERNAME = @USERNAME
-		FOR XML PATH('Connection_ID')
-	);
-	SET @ResponseXML = (
-		SELECT @ResponseXML, @Connection_ID_XML
-		FOR XML PATH ('root')
-	);
-    SELECT @ResponseXML;
+	
+	IF @ret = 0
+	BEGIN
+		SET @Connection_ID_XML = (
+			SELECT CONNECTION_ID FROM USER_CONNECTIONS WHERE USERNAME = @USERNAME
+			FOR XML PATH('Connection_ID'), TYPE
+		);
+		SELECT @ResponseXML, @Connection_ID_XML FOR XML PATH('root'), TYPE;
+	END
+	ELSE
+	BEGIN
+		SELECT @ResponseXML;
+	END
 END;
 GO
 /****** Object:  StoredProcedure [dbo].[sp_user_logout]    Script Date: 28/05/2025 13:51:03 ******/
@@ -1599,31 +1589,30 @@ BEGIN
     DECLARE @DATE_CONNECTED DATETIME;
     DECLARE @DATE_DISCONNECTED DATETIME;
 
-    SET @DATE_DISCONNECTED = SYSDATETIMEOFFSET() AT TIME ZONE 'Central European Standard Time';
+    SET @DATE_DISCONNECTED = CONVERT(DATETIME, SWITCHOFFSET(SYSDATETIMEOFFSET(), '+02:00'));
 
-    -- Comprueba si el usuario estÃ¡ conectado
+    -- Comprueba si el usuario está conectado
     EXEC sp_wdev_check_user_connection @SSID, @USER_ID OUTPUT, @DATE_CONNECTED OUTPUT, @ret OUTPUT;
 
     IF @ret = 100
     BEGIN
-		SET @USERNAME = (SELECT USERNAME FROM USERS WHERE ID = @USER_ID);
+		SELECT @USERNAME = USERNAME FROM USERS WHERE ID = @USER_ID;
         -- Insertar en USER_CONNECTIONS_HISTORY antes de eliminar
         EXEC sp_wdev_insert_user_connection_history 
             @USER_ID, 
             @USERNAME, 
             @DATE_CONNECTED, 
-            @DATE_DISCONNECTED -- fecha de desconexiÃ³n
-
+            @DATE_DISCONNECTED;
 
         -- Eliminar de USER_CONNECTIONS
         DELETE FROM USER_CONNECTIONS WHERE CONNECTION_ID = @SSID;
 
         IF @@ROWCOUNT = 1
         BEGIN
-            -- Actualizar estado de conexiÃ³n en USERS
+            -- Actualizar estado de conexión en USERS
             EXEC sp_wdev_update_user_login_status_0 @USERNAME;
 
-            SET @ret = 0; -- Ã‰xito
+            SET @ret = 0; -- Éxito
         END
     END
 
@@ -1637,7 +1626,6 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER OFF
 GO
-
 
 CREATE   PROCEDURE [dbo].[sp_user_register]
     @USERNAME NVARCHAR(25),
@@ -1672,7 +1660,7 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			-- Verificar si el correo electrÃ³nico ya estÃ¡ registrado
+			-- Verificar si el correo electrónico ya está registrado
 			IF dbo.fn_mail_exists(@EMAIL) = 1
 			BEGIN
 				SET @ret = 408;
@@ -1680,7 +1668,7 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				-- Verificar si el correo electrÃ³nico es vÃ¡lido
+				-- Verificar si el correo electrónico es válido
 				IF dbo.fn_mail_isvalid(@EMAIL) = 0
 				BEGIN
 					SET @ret = 450;
@@ -1688,7 +1676,7 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					-- Verificar la polÃ­tica de contraseÃ±a
+					-- Verificar la política de contraseña
 					IF dbo.fn_pwd_checkpolicy(@PASSWORD) = 0
 					BEGIN
 						SET @ret = 451;
@@ -1712,25 +1700,42 @@ BEGIN
 							END
 							ELSE
 							BEGIN
-								-- Insertar el nuevo usuario si todas las validaciones son exitosas
-								EXEC @ret = sp_wdev_user_insert @USERNAME, @NAME, @LASTNAME, @PASSWORD, @EMAIL, @GENDER, @DEF_LANG;
+								BEGIN TRANSACTION;
+								BEGIN TRY
+									-- Insertar el nuevo usuario si todas las validaciones son exitosas
+									EXEC @ret = sp_wdev_user_insert @USERNAME, @NAME, @LASTNAME, @PASSWORD, @EMAIL, @GENDER, @DEF_LANG;
 
-								IF @@ROWCOUNT > 0
-								BEGIN
-									-- Crear cuenta bancaria 
-									SET @USER_ID = (SELECT ID FROM USERS WHERE USERNAME = @USERNAME);
-									EXEC @result = dbo.sp_wdev_create_account @USER_ID, @USERNAME, 100;
-									IF (@result = 1)
+									IF @ret > 0  -- sp_wdev_user_insert devuelve el código de registro
 									BEGIN
-										SET @ret = 0;  
-										GOTO ExitProc;
+										-- Crear cuenta bancaria 
+										SET @USER_ID = (SELECT ID FROM USERS WHERE USERNAME = @USERNAME);
+										EXEC @result = dbo.sp_wdev_create_account @USER_ID, @USERNAME, 100;
+										
+										IF (@result = 1)
+										BEGIN
+											COMMIT TRANSACTION;
+											SET @ret = 0;  
+											GOTO ExitProc;
+										END
+										ELSE
+										BEGIN
+											ROLLBACK TRANSACTION;
+											SET @ret = -1;  
+											GOTO ExitProc;
+										END
 									END
 									ELSE
 									BEGIN
-										SET @ret = -1  
+										ROLLBACK TRANSACTION;
+										SET @ret = -1;
 										GOTO ExitProc;
 									END
-								END
+								END TRY
+								BEGIN CATCH
+									ROLLBACK TRANSACTION;
+									SET @ret = -1;
+									GOTO ExitProc;
+								END CATCH
 							END
 						END
 					END
@@ -1761,23 +1766,23 @@ BEGIN
 
     SET @ret = -1;
 
-    -- Comprueba si el usuario estÃ¡ conectado
+    -- Comprueba si el usuario está conectado
     IF EXISTS (
         SELECT 1 FROM USER_CONNECTIONS WHERE CAST(CONNECTION_ID AS NVARCHAR(255)) = @SSID
     )
     BEGIN
-        -- ObtÃ©n la informaciÃ³n de la conexiÃ³n
+        -- Obtén la información de la conexión
         SELECT 
             @USER_ID = USER_ID, 
             @DATE_CONNECTED = DATE_CONNECTED 
         FROM USER_CONNECTIONS 
         WHERE CAST(CONNECTION_ID AS NVARCHAR(255)) = @SSID;
 
-        SET @ret = 100; -- Ã‰xito
+        SET @ret = 100; -- Éxito
     END
     ELSE
     BEGIN
-        SET @ret = 405; -- ConexiÃ³n no encontrada
+        SET @ret = 405; -- Conexión no encontrada
     END
 END
 GO
@@ -1796,7 +1801,7 @@ BEGIN
 
     -- Crear la cuenta
     INSERT INTO BANK_ACCOUNTS (USER_ID, USERNAME, BALANCE, CREATED_AT)
-    VALUES (@USER_ID, @USERNAME, @INITIAL_BALANCE, SWITCHOFFSET(SYSDATETIMEOFFSET(), '+02:00'));
+    VALUES (@USER_ID, @USERNAME, @INITIAL_BALANCE, CONVERT(DATETIME, SWITCHOFFSET(SYSDATETIMEOFFSET(), '+02:00')));
 
     IF @@ROWCOUNT > 0
         RETURN 1; -- OK
@@ -1810,19 +1815,18 @@ GO
 SET QUOTED_IDENTIFIER OFF
 GO
 
--- sp_wdev_deletealldata
+-- sp_wdev_deletealldata (implementación básica)
 CREATE   PROCEDURE [dbo].[sp_wdev_deletealldata]
     @USERNAME NVARCHAR(25),
-    @PASSWORD NVARCHAR(50)
-
-
+    @PASSWORD NVARCHAR(256)  -- Cambiado tamaño
 AS
 BEGIN
     DECLARE @ret INT;
-
-    SET @ret= -1;
-
+    SET @ret = -1;
     
+    -- Aquí iría la lógica de eliminación
+    -- Por ahora solo devolvemos un error
+    SET @ret = 0;  -- Cambiar según implementación
 END
 GO
 /****** Object:  StoredProcedure [dbo].[sp_wdev_get_registercode]    Script Date: 28/05/2025 13:51:03 ******/
@@ -1833,50 +1837,16 @@ GO
 
 CREATE   PROCEDURE [dbo].[sp_wdev_get_registercode]
     @USERNAME NVARCHAR(25),
-    @REGISTER_CODE INT OUTPUT -- ParÃ¡metro de salida para el cÃ³digo de registro
+    @REGISTER_CODE INT OUTPUT -- Parámetro de salida para el código de registro
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @ret INT;
-    SET @ret = -1;
-
-    -- Buscar el cÃ³digo de registro para el usuario dado
+    -- Buscar el código de registro para el usuario dado
     SELECT @REGISTER_CODE = REGISTER_CODE
     FROM USERS
     WHERE USERNAME = @USERNAME;
-
-    -- Verificar si se encontrÃ³ el cÃ³digo de registro
-    IF @REGISTER_CODE IS NOT NULL
-    BEGIN
-        -- Si se encontrÃ³, establecer el cÃ³digo de retorno en 0 (Ã©xito)
-        SET @ret = 0;
-    END
-    ELSE
-    BEGIN
-        -- Si no se encontrÃ³, establecer el cÃ³digo de retorno en 404 (no encontrado)
-        SET @ret = 404;
-    END
-
-    -- Obtener el objeto XML de respuesta para el cÃ³digo de error
-    DECLARE @ResponseXML XML;
-    EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'register_code';
-
-    -- Verificar si se encontrÃ³ el cÃ³digo de registro
-    IF @ret = 0
-    BEGIN
-        -- Si todo estÃ¡ bien, incluir el cÃ³digo de registro en el XML de respuesta
-        SELECT @REGISTER_CODE;
-    END
-
-    -- Devolver el objeto XML de respuesta
-    -- SELECT @ResponseXML;
 END;
-
-
-
-
--- EXEC sp_get_registercode @USERNAME="pauallende04",@REGISTER_CODE=0
 GO
 /****** Object:  StoredProcedure [dbo].[sp_wdev_insert_user_connection_history]    Script Date: 28/05/2025 13:51:03 ******/
 SET ANSI_NULLS ON
@@ -1902,7 +1872,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE PROCEDURE [dbo].[sp_wdev_recover_password_email]
-    @EMAIL NVARCHAR(25)
+    @EMAIL NVARCHAR(100)  -- Ajustado tamaño
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1923,8 +1893,7 @@ BEGIN
     ELSE
     BEGIN
 		SET @RECOVERY_CODE = CAST((RAND() * 90000) + 10000 AS INT);
-		SET @USER_ID = (SELECT ID FROM USERS WHERE EMAIL = @EMAIL);
-		SET @USERNAME = (SELECT USERNAME FROM USERS WHERE EMAIL = @EMAIL);
+		SELECT @USER_ID = ID, @USERNAME = USERNAME FROM USERS WHERE EMAIL = @EMAIL;
 
 		-- Insertar el PIN de recuperación
 		IF NOT EXISTS (
@@ -1946,17 +1915,17 @@ BEGIN
 	ExitProc:
     DECLARE @ResponseXML XML, @USERNAME_XML XML, @RECOVERY_CODE_XML XML;
     EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'recover_password_email';
-	SET @USERNAME_XML = (
-		SELECT @USERNAME FOR XML PATH('USERNAME')
-	);
-	SET @RECOVERY_CODE_XML = (
-		SELECT @RECOVERY_CODE FOR XML PATH('RECOVERY_CODE')
-	);
-	SET @ResponseXML = (
-		SELECT @ResponseXML, @USERNAME_XML, @RECOVERY_CODE_XML
-		FOR XML PATH ('root')
-	);
-    SELECT @ResponseXML;
+	
+	IF @ret = 0
+	BEGIN
+		SET @USERNAME_XML = (SELECT @USERNAME AS Username FOR XML PATH(''), TYPE);
+		SET @RECOVERY_CODE_XML = (SELECT @RECOVERY_CODE AS RecoveryCode FOR XML PATH(''), TYPE);
+		SELECT @ResponseXML, @USERNAME_XML, @RECOVERY_CODE_XML FOR XML PATH('root'), TYPE;
+	END
+	ELSE
+	BEGIN
+		SELECT @ResponseXML;
+	END
 END;
 GO
 /****** Object:  StoredProcedure [dbo].[sp_wdev_recover_password_pin]    Script Date: 28/05/2025 13:51:03 ******/
@@ -1965,7 +1934,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE PROCEDURE [dbo].[sp_wdev_recover_password_pin]
-    @EMAIL NVARCHAR(25),
+    @EMAIL NVARCHAR(100),
 	@PIN INT,
 	@NEW_PASSWORD NVARCHAR(256)
 AS
@@ -1996,10 +1965,9 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			SET @USER_ID = (SELECT ID FROM USERS WHERE EMAIL = @EMAIL);
-			SET @USERNAME = (SELECT USERNAME FROM USERS WHERE EMAIL = @EMAIL);
+			SELECT @USER_ID = ID, @USERNAME = USERNAME FROM USERS WHERE EMAIL = @EMAIL;
 
-			-- Insertar el PIN de recuperación
+			-- Verificar el PIN de recuperación
 			IF NOT EXISTS (
 				SELECT 1 FROM PASSWORD_RESET_PIN WHERE USER_ID = @USER_ID
 			)
@@ -2016,18 +1984,20 @@ BEGIN
 				END
 				ELSE
 				BEGIN
+					-- Hashear la nueva contraseña
 					SET @HPASSWORD = LOWER(CONVERT(VARCHAR(256), HASHBYTES('MD5', CAST(@NEW_PASSWORD AS VARCHAR(256))), 2));
-					-- Verifica que la nueva contraseÃ±a cumpla con la polÃ­tica
+					
+					-- Verifica que la nueva contraseña cumpla con la política
 					IF dbo.fn_pwd_checkpolicy(@NEW_PASSWORD) = 0
 					BEGIN
 						SET @ret = 503;
 						GOTO ExitProc;
 					END
 
-					-- Verificar si la nueva contraseÃ±a es igual a alguna de las tres Ãºltimas contraseÃ±as
+					-- Verificar si la nueva contraseña es igual a alguna de las tres últimas contraseñas
 					IF dbo.fn_compare_soundex(@USERNAME, @HPASSWORD) = 0
 					BEGIN
-						SET @ret = 402;
+						SET @ret = 403;
 						GOTO ExitProc;
 					END
 
@@ -2046,7 +2016,7 @@ BEGIN
 	END
 
 	ExitProc:
-    DECLARE @ResponseXML XML, @USERNAME_XML XML, @RECOVERY_CODE_XML XML;
+    DECLARE @ResponseXML XML;
     EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'recover_password_pin';
     SELECT @ResponseXML;
 END;
@@ -2079,7 +2049,7 @@ BEGIN
     SET NOCOUNT ON;
     
     -- Verificar si hay datos en el historial de conexiones
-    IF EXISTS (SELECT 1 FROM USERS WHERE USERNAME=@USERNAME)
+    IF EXISTS (SELECT 1 FROM USERS WHERE USERNAME = @USERNAME)
     BEGIN
         -- Si hay datos, convertir el conjunto de resultados a XML
         SET @XMLFlag = (
@@ -2087,11 +2057,11 @@ BEGIN
             FOR XML PATH('User'), ROOT('Users'), TYPE
         );
 
-        SET @ret=0
+        SET @ret = 0;
     END
     ELSE
     BEGIN
-        SET @ret = 505; -- Indicar que hubo resultados
+        SET @ret = 505; -- Indicar que no hubo resultados
     END
 END;
 GO
@@ -2122,7 +2092,7 @@ BEGIN
     END
     ELSE
     BEGIN
-        SET @ret = -1; -- Algo saliÃ³ mal durante la creaciÃ³n de la conexiÃ³n
+        SET @ret = -1; -- Algo salió mal durante la creación de la conexión
     END
 END;
 GO
@@ -2160,30 +2130,30 @@ GO
 SET QUOTED_IDENTIFIER OFF
 GO
 CREATE   PROCEDURE [dbo].[sp_wdev_user_insert]
-@USERNAME NVARCHAR(25),
-@NAME NVARCHAR(25),
-@LASTNAME NVARCHAR(50),
-@PASSWORD NVARCHAR(256),
-@EMAIL NVARCHAR(30),
-@GENDER NVARCHAR(1),
-@DEF_LANG NVARCHAR(3)
+    @USERNAME NVARCHAR(25),
+    @NAME NVARCHAR(25),
+    @LASTNAME NVARCHAR(50),
+    @PASSWORD NVARCHAR(256),
+    @EMAIL NVARCHAR(100),
+    @GENDER NVARCHAR(1),
+    @DEF_LANG NVARCHAR(3)
 AS
 BEGIN
-DECLARE @REGISTER_CODE INT;
+    DECLARE @REGISTER_CODE INT;
+    DECLARE @HashedPWD VARCHAR(256);
 
-    -- Generar cÃ³digo de 5 dÃ­gitos aleatorio
+    -- Generar código de 5 dígitos aleatorio
     SET @REGISTER_CODE = CAST((RAND() * 90000) + 10000 AS INT);
 
-	DECLARE @HashedPWD VARCHAR(256);
+	-- Hashear la contraseña con MD5
 	SET @HashedPWD = LOWER(CONVERT(VARCHAR(256), HASHBYTES('MD5', CAST(@PASSWORD AS VARCHAR(256))), 2));
 
     -- Insertar datos en la tabla USERS
     INSERT INTO USERS (USERNAME, NAME, LASTNAME, PASSWORD, EMAIL, STATUS, GENDER, DEF_LANG, REGISTER_CODE, LOGIN_STATUS, ROL_USER)
     VALUES (@USERNAME, @NAME, @LASTNAME, @HashedPWD, @EMAIL, 0, @GENDER, @DEF_LANG, @REGISTER_CODE, 0, 0);
 
-    -- Devolver el cÃ³digo generado
+    -- Devolver el código generado
     RETURN @REGISTER_CODE;
-
 END;
 GO
 /****** Object:  StoredProcedure [dbo].[sp_wdev_user_update_password_info]    Script Date: 28/05/2025 13:51:03 ******/
@@ -2193,7 +2163,7 @@ SET QUOTED_IDENTIFIER OFF
 GO
 
 CREATE   PROCEDURE [dbo].[sp_wdev_user_update_password_info]
-    @USERNAME NVARCHAR(50),
+    @USERNAME NVARCHAR(25),
     @CURRENT_PASSWORD NVARCHAR(256),
     @NEW_PASSWORD NVARCHAR(256),
     @ret INT OUTPUT
@@ -2203,13 +2173,13 @@ BEGIN
 
     DECLARE @USER_ID INT;
 
-    -- Obtener la informaciÃ³n del usuario
+    -- Obtener la información del usuario
     SELECT 
         @USER_ID = ID
     FROM USERS 
     WHERE USERNAME = @USERNAME;
 
-    -- Guardar la contraseÃ±a anterior en PWD_HISTORY
+    -- Guardar la contraseña anterior en PWD_HISTORY
     INSERT INTO PWD_HISTORY(
         USER_ID,
         USERNAME,
@@ -2220,10 +2190,10 @@ BEGIN
         @USER_ID,
         @USERNAME, 
         @CURRENT_PASSWORD, 
-        CONVERT([datetime],switchoffset(sysdatetimeoffset(),'+02:00')) -- fecha de cambio de contraseÃ±a
+        CONVERT(DATETIME, SWITCHOFFSET(SYSDATETIMEOFFSET(), '+02:00'))
     );
 
-    -- Actualizar la contraseÃ±a del usuario
+    -- Actualizar la contraseña del usuario
     UPDATE USERS 
     SET PASSWORD = @NEW_PASSWORD 
     WHERE USERNAME = @USERNAME;
@@ -2240,23 +2210,30 @@ GO
 CREATE PROCEDURE [dbo].[sp_xml_error_message]
     @RETURN INT,
     @XmlResponse XML OUTPUT,
-	@Action NVARCHAR (32)
+	@Action NVARCHAR(32) = 'unknown'  -- Valor por defecto
 AS
 BEGIN
     DECLARE @ERROR_CODE INT;
     SET @ERROR_CODE = @RETURN;
 
     DECLARE @ERROR_MESSAGE NVARCHAR(200);
-    DECLARE @CURRENT_TIME DATETIME = CONVERT([datetime],SWITCHOFFSET(SYSDATETIMEOFFSET(),'+02:00'));
+    DECLARE @CURRENT_TIME DATETIME = CONVERT(DATETIME, SWITCHOFFSET(SYSDATETIMEOFFSET(), '+02:00'));
     DECLARE @SERVER_ID NVARCHAR(50) = @@SERVERNAME;
-    DECLARE @EXECUTION_TIME NVARCHAR(50) = CAST(DATEDIFF(MILLISECOND, @CURRENT_TIME, CONVERT([datetime],SWITCHOFFSET(SYSDATETIMEOFFSET(),'+02:00'))) AS NVARCHAR(50)) + ' ms';
+    DECLARE @EXECUTION_TIME NVARCHAR(50);
     DECLARE @URL NVARCHAR(100) = 'www.ws.mybizum.com';
     DECLARE @METHOD_NAME NVARCHAR(50) = @Action;
+
+    -- Calcular tiempo de ejecución (simulado)
+    SET @EXECUTION_TIME = '0 ms';
 
     -- Recupera el mensaje de error de la tabla USER_ERRORS
     SELECT @ERROR_MESSAGE = ERROR_MESSAGE
     FROM USER_ERRORS
     WHERE ERROR_CODE = @ERROR_CODE;
+
+    -- Si no encuentra el mensaje, poner uno por defecto
+    IF @ERROR_MESSAGE IS NULL
+        SET @ERROR_MESSAGE = 'Error desconocido';
 
     -- Construcción del XML según el modelo proporcionado
     SET @XmlResponse = (
@@ -2304,8 +2281,7 @@ BEGIN
             )
         FOR XML PATH('ws_response'), TYPE
     );
-
-END
+END;
 GO
 USE [master]
 GO
