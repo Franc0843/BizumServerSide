@@ -1439,22 +1439,26 @@ BEGIN
         GOTO ExitProc;
     END
 
+	-- Hashear la nueva contraseña
+	DECLARE @HPASSWORD VARCHAR(256);
+	SET @HPASSWORD = LOWER(CONVERT(VARCHAR(256), HASHBYTES('MD5', CAST(@NEW_PASSWORD AS VARCHAR(256))), 2));
+
     -- Verificar si la nueva contraseña es igual a alguna de las tres últimas contraseñas
-    IF dbo.fn_compare_soundex(@USERNAME, @NEW_PASSWORD) = 0
+    IF dbo.fn_compare_soundex(@USERNAME, @HPASSWORD) = 0
     BEGIN
         SET @ret = 403;  -- Cambiado a 403 que es el código correcto para sonido similar
         GOTO ExitProc;
     END
 
     -- Verificar si la nueva contraseña es igual a la última contraseña
-    IF dbo.fn_compare_passwords(@NEW_PASSWORD, @USERNAME) = 1
+    IF dbo.fn_compare_passwords(@HPASSWORD, @USERNAME) = 1
     BEGIN
         SET @ret = 402;
         GOTO ExitProc;
     END
 
     -- Llamar a la procedure para actualizar la información de contraseña del usuario
-    EXEC sp_wdev_user_update_password_info @USERNAME, @CURRENT_PASSWORD, @NEW_PASSWORD, @ret OUTPUT;
+    EXEC sp_wdev_user_update_password_info @USERNAME, @CURRENT_PASSWORD, @HPASSWORD, @ret OUTPUT;
 
     ExitProc:
     DECLARE @ResponseXML XML;
