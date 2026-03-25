@@ -22,7 +22,8 @@ class DBConnection {
             $this -> db -> setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
            // $this -> consulta(); 
         } catch (Exception $error) {
-            echo "No se ha podido conectar a la bd: ". $error -> getMessage();
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> No se ha podido conectar a la bd: <![CDATA[" . $error->getMessage() . "]]></message></response>";
         }
     }
 
