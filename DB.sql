@@ -583,6 +583,8 @@ INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (509, N'El ema
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (600, N'Fondos insuficientes')
 GO
+INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (601, N'No se pueden enviar bizums negativos.')
+GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (700, N'El usuario especificado no existe.')
 GO
 INSERT [dbo].[USER_ERRORS] ([ERROR_CODE], [ERROR_MESSAGE]) VALUES (701, N'La cuenta del usuario ya está activada.')
@@ -1254,6 +1256,13 @@ BEGIN
     DECLARE @DATE_CONNECTED DATETIME;
     DECLARE @SENDER_BALANCE DECIMAL(18, 2);
 	DECLARE @TransactionID INT;
+	
+    -- Paso 0: Verificar importe negativo
+    IF @AMOUNT < 0
+    BEGIN
+        SET @ret = 601; -- Importe negativo
+        GOTO ExitProc;
+    END
 
     -- Paso 1: Verificar la conexión mediante la procedure centralizada
     EXEC sp_wdev_check_user_connection 

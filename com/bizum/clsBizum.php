@@ -81,6 +81,20 @@ class Bizum
 
     public function sendBizum($ssid, $reciever, $amount)
     {
+        if ($amount < 0) {
+            header('Content-Type: text/xml');
+            try {
+                // Intentamos pedirle el XML de error a la base de datos para que sea consistente
+                $sql = "DECLARE @xml XML; EXEC sp_xml_error_message 601, @xml OUTPUT, 'send_bizum'; SELECT @xml AS xml;";
+                $stmt = $this->dbCommand->execute2($sql);
+                $res = $stmt->fetch(PDO::FETCH_ASSOC);
+                echo $res['xml'];
+            } catch (Exception $e) {
+                // Si la base de datos falla (ej. no se aplicó el código 601 aún), usamos un fallback manual
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><ws_response><head><errors><error><num_error>601</num_error><message_error>No se pueden enviar bizums negativos.</message_error><severity>ERROR</severity><user_message>No se pueden enviar bizums negativos.</user_message></error></errors></head><body><response_data>Operation failed</response_data></body></ws_response>";
+            }
+            return;
+        }
         try {
             $result = $this->dbCommand->execute('sp_uc_send_bizum', array($ssid, $reciever, $amount));
 
