@@ -1402,6 +1402,55 @@ ExitProc:
     SELECT @ResponseXML;
 END;
 GO
+/****** Object:  StoredProcedure [dbo].[sp_user_block]    Script Date: 28/05/2025 13:51:03 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER OFF
+GO
+
+CREATE PROCEDURE [dbo].[sp_user_block]
+    @SSID NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @ret INT = -1;
+    DECLARE @USER_ID INT;
+    DECLARE @USERNAME NVARCHAR(25);
+    DECLARE @DATE_CONNECTED DATETIME;
+    DECLARE @DATE_DISCONNECTED DATETIME = CONVERT(DATETIME, SWITCHOFFSET(SYSDATETIMEOFFSET(), '+02:00'));
+
+    -- Verificar la conexión
+    EXEC sp_wdev_check_user_connection @SSID, @USER_ID OUTPUT, @DATE_CONNECTED OUTPUT, @ret OUTPUT;
+
+    IF @ret = 100
+    BEGIN
+        SELECT @USERNAME = USERNAME FROM USERS WHERE ID = @USER_ID;
+
+        -- Bloquear al usuario (STATUS = 0 como pidió el usuario)
+        UPDATE USERS SET STATUS = 0 WHERE ID = @USER_ID;
+
+        -- Registrar desconexión
+        EXEC sp_wdev_insert_user_connection_history @USER_ID, @USERNAME, @DATE_CONNECTED, @DATE_DISCONNECTED;
+
+        -- Eliminar sesión
+        DELETE FROM USER_CONNECTIONS WHERE CONNECTION_ID = @SSID;
+
+        -- Actualizar login status
+        EXEC sp_wdev_update_user_login_status_0 @USERNAME;
+
+        SET @ret = 0; -- Éxito
+    END
+    ELSE
+    BEGIN
+        SET @ret = 405; -- Conexión no encontrada o inválida
+    END
+
+    DECLARE @ResponseXML XML;
+    EXEC sp_xml_error_message @RETURN = @ret, @XmlResponse = @ResponseXML OUTPUT, @Action = 'blockuser';
+    SELECT @ResponseXML;
+END;
+GO
+GO
 /****** Object:  StoredProcedure [dbo].[sp_user_change_password]    Script Date: 28/05/2025 13:51:03 ******/
 SET ANSI_NULLS ON
 GO

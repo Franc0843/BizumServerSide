@@ -1,13 +1,16 @@
 {
     "host": "localhost",
     "username": "usuario_ftp",
-    "password": "tupelirrojo06",
-    "remotePath": "html/BIZUMSERVERSIDE",
+    "password": "0843",
+    "remotePath": "html/ws.mybizums.com",
     "protocol": "ftp",
-    "port": 21,
+    "port": 0,
     "fileNameEncoding": "utf8",
     "autoUpload": true,
     "autoDelete": false,
     "autoDownload": false,
-    "ignore": [".git", "/.vscode"]
+    "ignore": [
+        ".git",
+        "/.vscode"
+    ]
 }

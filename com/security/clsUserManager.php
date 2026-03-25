@@ -247,6 +247,28 @@ class UserManager
         }
     }
 
+    public function blockUser($ssid)
+    {
+        if (empty($ssid)) {
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Todos los campos son obligatorios.</message></response>";
+        } else {
+            try {
+                $result = $this->dbCommand->execute('sp_user_block', array($ssid));
+
+                // Establecer el encabezado para XML
+                header('Content-Type: text/xml');
+
+                // Mostrar la respuesta XML
+                echo $result;
+
+            } catch (PDOException $e) {
+                header('Content-Type: text/xml');
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
+            }
+        }
+    }
+
     // public function add_transaction($sender, $receiver, $amount)
     // {
     //     if (empty($sender) || empty($receiver) || empty($amount)) {

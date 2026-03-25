@@ -19,6 +19,10 @@ Todos los endpoints deben comenzar con: `http://localhost:8081/ws.mybizums.com/w
 - **Parámetros**: `username`, `code`
 - **Ejemplo**: `.../ws.php?action=accvalidate&username=pepe&code=12345`
 
+### Bloquear Usuario (Block User)
+- **Parámetros**: `ssid`
+- **Ejemplo**: `.../ws.php?action=blockuser&ssid=a0b39afe-6971-4d0c-85ca-d63bb5d07de2`
+
 ### Logout
 - **Parámetros**: `ssid` (Session ID o ID de usuario)
 - **Ejemplo**: `.../ws.php?action=logout&ssid=ID_DEL_USUARIO`
