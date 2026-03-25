@@ -18,15 +18,17 @@ class Bizum
             // Obtener el resultado
             // $result = $result->fetch(PDO::FETCH_ASSOC);
 
+            header('Content-Type: text/xml');
             if ($result[0] == "1") {
-                echo "<span style='color: green;'>✅ Usuario existente</span>";
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>success</status><message> Usuario existente</message></response>";
             } elseif ($result[0] == "2") {
-                echo "<span style='color: orange;'>⚠️ No te puedes enviar un bizum a ti mismo</span>";
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>warning</status><message> No te puedes enviar un bizum a ti mismo</message></response>";
             } else {
-                echo "<span style='color: red;'>❌ Usuario no disponible</span>";
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Usuario no disponible</message></response>";
             }
         } catch (Exception $e) {
-            echo "<span style='color: red;'>⚠️ Error en la validación: " . $e->getMessage() . "</span>";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error en la validación: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
@@ -41,7 +43,8 @@ class Bizum
             // Mostrar la respuesta XML
             echo $result;
         } catch (Exception $e) {
-            echo "<span style='color: red;'>⚠️ Error en la validación: " . $e->getMessage() . "</span>";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error en la validación: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
@@ -56,7 +59,8 @@ class Bizum
             // Mostrar la respuesta XML
             echo $result;
         } catch (Exception $e) {
-            echo "<span style='color: red;'>⚠️ Error en la validación: " . $e->getMessage() . "</span>";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error en la validación: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
@@ -70,7 +74,8 @@ class Bizum
             // Mostrar la respuesta XML
             echo $result;
         } catch (Exception $e) {
-            echo "<span style='color: red;'>⚠️ Error al obtener transacciones: " . $e->getMessage() . "</span>";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error al obtener transacciones: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
@@ -85,7 +90,8 @@ class Bizum
             // Mostrar la respuesta XML
             echo $result;
         } catch (Exception $e) {
-            echo "<span style='color: red;'>⚠️ Error en el envio: " . $e->getMessage() . "</span>";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error en el envio: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 

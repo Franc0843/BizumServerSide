@@ -19,7 +19,8 @@ class DBManager {
             // Mostrar la respuesta XML
             echo $result;
         } catch (PDOException $e) {
-            echo 'Error: ' . $e->getMessage();
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
@@ -33,7 +34,8 @@ class DBManager {
             // Mostrar la respuesta XML
             echo $result;
         } catch (PDOException $e) {
-            echo 'Error: ' . $e->getMessage();
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 }

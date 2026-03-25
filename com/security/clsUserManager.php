@@ -14,7 +14,8 @@ class UserManager
     public function register($username, $name, $lastname, $password, $email, $gender, $def_lang)
     {
         if (empty($username) || empty($name) || empty($lastname) || empty($password) || empty($email) || empty($gender) || empty($def_lang)) {
-            echo "Todos los campos son obligatorios.";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Todos los campos son obligatorios.</message></response>";
         } else {
             try {
                 $result = $this->dbCommand->execute('sp_user_register', array($username, $name, $lastname, $password, $email, $gender, $def_lang));
@@ -45,7 +46,8 @@ class UserManager
                 echo $result;
 
             } catch (PDOException $e) {
-                echo 'Error: ' . $e->getMessage();
+                header('Content-Type: text/xml');
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
             }
         }
     }
@@ -82,7 +84,8 @@ class UserManager
             echo $xml->asXML();
 
         } catch (PDOException $e) {
-            echo 'Error: ' . $e->getMessage();
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
@@ -98,14 +101,16 @@ class UserManager
             echo $xml->asXML();
 
         } catch (PDOException $e) {
-            echo 'Error: ' . $e->getMessage();
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
     public function login($username, $password)
     {
         if (empty($username) || empty($password)) {
-            echo "Todos los campos son obligatorios.";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Todos los campos son obligatorios.</message></response>";
         } else {
             try {
                 $result = $this->dbCommand->execute('sp_user_login', array($username, $password));
@@ -113,7 +118,8 @@ class UserManager
                 header('Content-Type: text/xml');
                 echo $xml->asXML();
             } catch (PDOException $e) {
-                echo 'Error: ' . $e->getMessage();
+                header('Content-Type: text/xml');
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
             }
         }
     }
@@ -126,7 +132,8 @@ class UserManager
             header('Content-Type: text/xml');
             echo $xml->asXML();
         } catch (PDOException $e) {
-            echo 'Error: ' . $e->getMessage();
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
@@ -141,14 +148,16 @@ class UserManager
             // Mostrar la respuesta XML
             echo $result;
         } catch (PDOException $e) {
-            echo 'Error: ' . $e->getMessage();
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
     public function accountValidate($username, $code)
     {
         if (empty($username) || empty($code)) {
-            echo "Todos los campos son obligatorios.";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Todos los campos son obligatorios.</message></response>";
         } else {
             try {
                 $result = $this->dbCommand->execute('sp_user_accountvalidate', array($username, $code));
@@ -160,7 +169,8 @@ class UserManager
                 echo $result;
 
             } catch (PDOException $e) {
-                echo 'Error: ' . $e->getMessage();
+                header('Content-Type: text/xml');
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
             }
         }
     }
@@ -168,7 +178,8 @@ class UserManager
     public function listusers($ssid)
     {
         if (empty($ssid)) {
-            echo "Todos los campos son obligatorios.";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Todos los campos son obligatorios.</message></response>";
         } else {
             try {
                 $result = $this->dbCommand->execute('sp_list_users2', array($ssid));
@@ -180,7 +191,8 @@ class UserManager
                 echo $result;
 
             } catch (PDOException $e) {
-                echo 'Error: ' . $e->getMessage();
+                header('Content-Type: text/xml');
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error: <![CDATA[" . $e->getMessage() . "]]></message></response>";
             }
         }
     }
@@ -188,7 +200,8 @@ class UserManager
     public function checkpwd($pwd)
     {
         if (!isset($_GET['pwd'])) {
-            echo "<span style='color: red;'>❌ No se recibió ninguna contraseña.</span>";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> No se recibió ninguna contraseña.</message></response>";
             return;
         }
 
@@ -206,20 +219,31 @@ class UserManager
             $xml = $result['xml'];
 
             // Definir el mensaje según la puntuación
+            header('Content-Type: text/xml');
+            $status = "success";
             $message = "";
+            $missing = "";
             if ($score <= 10) {
-                $message = "<span style='color: red;'>❌ Muy débil<br>Falta: " . htmlspecialchars($xml) . "</span>";
+                $status = "error";
+                $message = " Muy débil";
+                $missing = $xml;
             } elseif ($score <= 20) {
-                $message = "<span style='color: orange;'>⚠️ Débil<br>Falta: " . htmlspecialchars($xml) . "</span>";
+                $status = "warning";
+                $message = " Débil";
+                $missing = $xml;
             } elseif ($score <= 40) {
-                $message = "<span style='color: yellow;'>🟡 Aceptable<br>Falta: " . htmlspecialchars($xml) . "</span>";
+                $status = "warning";
+                $message = " Aceptable";
+                $missing = $xml;
             } else {
-                $message = "<span style='color: green;'>✅ Fuerte</span>";
+                $status = "success";
+                $message = " Fuerte";
             }
 
-            echo $message;
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>$status</status><message>$message</message><missing><![CDATA[$missing]]></missing></response>";
         } catch (Exception $e) {
-            echo "<span style='color: red;'>⚠️ Error en la validación: " . $e->getMessage() . "</span>";
+            header('Content-Type: text/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?><response><status>error</status><message> Error en la validación: <![CDATA[" . $e->getMessage() . "]]></message></response>";
         }
     }
 
